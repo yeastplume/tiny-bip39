@@ -1,29 +1,61 @@
-use ::error::{ErrorKind, Result};
-use std::collections::HashMap;
+use rustc_hash::FxHashMap;
+use error::{ErrorKind, Result};
+
+pub struct WordMap {
+    inner: FxHashMap<&'static str, u16>
+}
+
+impl WordMap {
+    pub fn get_bits(&self, word: &str) -> Result<u16> {
+        match self.inner.get(word) {
+            Some(n) => Ok(*n),
+            None => bail!(ErrorKind::InvalidWord)
+        }
+    }
+}
 
 mod lazy {
-    use super::HashMap;
+    use super::WordMap;
 
     /// lazy generation of the word list
     fn gen_wordlist(lang_words: &str) -> Vec<&str> {
-        lang_words.split_whitespace().collect()
+        let wordlist: Vec<_> = lang_words.split_whitespace().collect();
+
+        debug_assert!(wordlist.len() == 2048, "Invalid wordlist length");
+
+        wordlist
     }
 
     /// lazy generation of the word map
-    fn gen_wordmap(wordlist: &[&'static str]) -> HashMap<&'static str, u16> {
-        wordlist
-            .iter()
-            .enumerate()
-            .map(|(i, item)| (*item, i as u16))
-            .collect()
+    fn gen_wordmap(wordlist: &[&'static str]) -> WordMap {
+        let inner = wordlist.iter()
+                            .enumerate()
+                            .map(|(i, item)| (*item, i as u16))
+                            .collect();
+
+        WordMap {
+            inner
+        }
     }
 
-    static BIP39_WORDLIST_ENGLISH: &str = include_str!("bip39_english.txt");
-
     lazy_static! {
-        pub static ref VEC_BIP39_WORDLIST_ENGLISH: Vec<&'static str> = gen_wordlist(BIP39_WORDLIST_ENGLISH);
+        pub static ref WORDLIST_ENGLISH: Vec<&'static str> = gen_wordlist(include_str!("langs/english.txt"));
+        pub static ref WORDLIST_CHINESE_SIMPLIFIED: Vec<&'static str> = gen_wordlist(include_str!("langs/chinese_simplified.txt"));
+        pub static ref WORDLIST_CHINESE_TRADITIONAL: Vec<&'static str> = gen_wordlist(include_str!("langs/chinese_traditional.txt"));
+        pub static ref WORDLIST_FRENCH: Vec<&'static str> = gen_wordlist(include_str!("langs/french.txt"));
+        pub static ref WORDLIST_ITALIAN: Vec<&'static str> = gen_wordlist(include_str!("langs/italian.txt"));
+        pub static ref WORDLIST_JAPANESE: Vec<&'static str> = gen_wordlist(include_str!("langs/japanese.txt"));
+        pub static ref WORDLIST_KOREAN: Vec<&'static str> = gen_wordlist(include_str!("langs/korean.txt"));
+        pub static ref WORDLIST_SPANISH: Vec<&'static str> = gen_wordlist(include_str!("langs/spanish.txt"));
 
-        pub static ref HASHMAP_BIP39_WORDMAP_ENGLISH: HashMap<&'static str, u16> = gen_wordmap(&VEC_BIP39_WORDLIST_ENGLISH);
+        pub static ref WORDMAP_ENGLISH: WordMap = gen_wordmap(&WORDLIST_ENGLISH);
+        pub static ref WORDMAP_CHINESE_SIMPLIFIED: WordMap = gen_wordmap(&WORDLIST_CHINESE_SIMPLIFIED);
+        pub static ref WORDMAP_CHINESE_TRADITIONAL: WordMap = gen_wordmap(&WORDLIST_CHINESE_TRADITIONAL);
+        pub static ref WORDMAP_FRENCH: WordMap = gen_wordmap(&WORDLIST_FRENCH);
+        pub static ref WORDMAP_ITALIAN: WordMap = gen_wordmap(&WORDLIST_ITALIAN);
+        pub static ref WORDMAP_JAPANESE: WordMap = gen_wordmap(&WORDLIST_JAPANESE);
+        pub static ref WORDMAP_KOREAN: WordMap = gen_wordmap(&WORDLIST_KOREAN);
+        pub static ref WORDMAP_SPANISH: WordMap = gen_wordmap(&WORDLIST_SPANISH);
     }
 }
 
@@ -33,56 +65,49 @@ mod lazy {
 /// These are not of much use right now, and may even be removed from the crate, as there is no
 /// official language specified by the standard except English.
 ///
-/// [Mnemonic]: ../mnemonic/struct.Mnemonic.html
-/// [Seed]: ../seed/struct.Seed.html
+/// [Mnemonic]: ./mnemonic/struct.Mnemonic.html
+/// [Seed]: ./seed/struct.Seed.html
 #[derive(Debug, Clone, Copy)]
 pub enum Language {
-    English
+    English,
+    ChineseSimplified,
+    ChineseTraditional,
+    French,
+    Italian,
+    Japanese,
+    Korean,
+    Spanish,
 }
 
 impl Language {
-    /// Get the [`Language`][Language] value for a specific locale
-    ///
-    /// Not used much at the moment as the standard specifies english
-    ///
-    /// # Example
-    /// ```
-    /// use bip39::{Language};
-    ///
-    /// let lang = Language::for_locale("en_US.UTF-8").unwrap();
-    ///
-    /// ```
-    /// [Language]: ../language/struct.Language.html
-    pub fn for_locale(locale: &str) -> Result<Language> {
-        let lang = match locale {
-            "en_US.UTF-8" => Language::English,
-            "en_GB.UTF-8" => Language::English,
-
-            _ => bail!(ErrorKind::LanguageUnavailable)
-        };
-
-        Ok(lang)
-    }
-
     /// Get the word list for this language
-    pub fn get_wordlist(&self) -> &'static [&'static str] {
-
+    pub fn wordlist(&self) -> &'static [&'static str] {
         match *self {
-            Language::English => &*lazy::VEC_BIP39_WORDLIST_ENGLISH
+            Language::English => &lazy::WORDLIST_ENGLISH,
+            Language::ChineseSimplified => &lazy::WORDLIST_CHINESE_SIMPLIFIED,
+            Language::ChineseTraditional => &lazy::WORDLIST_CHINESE_TRADITIONAL,
+            Language::French => &lazy::WORDLIST_FRENCH,
+            Language::Italian => &lazy::WORDLIST_ITALIAN,
+            Language::Japanese => &lazy::WORDLIST_JAPANESE,
+            Language::Korean => &lazy::WORDLIST_KOREAN,
+            Language::Spanish => &lazy::WORDLIST_KOREAN,
         }
     }
 
-    /// Get a [`HashMap`][HashMap] that allows word -> index lookups in the word list
+    /// Get a [`WordMap`][WordMap] that allows word -> index lookups in the word list
     ///
     /// The index of an individual word in the word list is used as the binary value of that word
     /// when the phrase is turned into a [`Seed`][Seed].
-    ///
-    /// [HashMap]: https://doc.rust-lang.org/std/collections/struct.HashMap.html
-    /// [Seed]: ../seed/struct.Seed.html
-    pub fn get_wordmap(&self) -> &'static HashMap<&'static str, u16> {
-
+    pub fn wordmap(&self) -> &'static WordMap {
         match *self {
-            Language::English => &*lazy::HASHMAP_BIP39_WORDMAP_ENGLISH
+            Language::English => &lazy::WORDMAP_ENGLISH,
+            Language::ChineseSimplified => &lazy::WORDMAP_CHINESE_SIMPLIFIED,
+            Language::ChineseTraditional => &lazy::WORDMAP_CHINESE_TRADITIONAL,
+            Language::French => &lazy::WORDMAP_FRENCH,
+            Language::Italian => &lazy::WORDMAP_ITALIAN,
+            Language::Japanese => &lazy::WORDMAP_JAPANESE,
+            Language::Korean => &lazy::WORDMAP_KOREAN,
+            Language::Spanish => &lazy::WORDMAP_KOREAN,
         }
     }
 }
