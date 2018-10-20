@@ -1,4 +1,4 @@
-use util::{truncate, checksum, IterJoinExt, BitWriter, IterBitsExt, Bits11};
+use util::{checksum, IterExt, BitWriter};
 use crypto::{gen_random_bytes, sha256_first_byte};
 use error::{ErrorKind, Result};
 use mnemonic_type::MnemonicType;
@@ -102,10 +102,9 @@ impl Mnemonic {
         // Given the entropy is of correct size, this ought to give us the correct word
         // count.
         let phrase = entropy.iter()
-                            .cloned()
-                            .chain(Some(checksum_byte))
-                            .bits(Bits11)
-                            .map(|n| wordlist[n as usize])
+                            .chain(Some(&checksum_byte))
+                            .bits()
+                            .map(|bits| wordlist.get_word(bits))
                             .join(" ");
 
         Mnemonic {
@@ -181,29 +180,23 @@ impl Mnemonic {
         let wordmap = lang.wordmap();
 
         // Preallocate enough space for the longest possible word list
-        let mut to_validate = BitWriter::with_capacity(264, Bits11);
-        let mut word_count = 0;
+        let mut bits = BitWriter::with_capacity(264);
 
         for word in phrase.split(" ") {
-            let bits = wordmap.get_bits(&word)?;
-
-            debug_assert!(bits >> 11 == 0);
-
-            to_validate.push(bits);
-            word_count += 1;
+            bits.push(wordmap.get_bits(&word)?);
         }
 
-        let mtype = MnemonicType::for_word_count(word_count)?;
+        let mtype = MnemonicType::for_word_count(bits.len() / 11)?;
 
-        debug_assert!(to_validate.len() == mtype.total_bits(), "Insufficient amount of bits to validate");
+        debug_assert!(bits.len() == mtype.total_bits(), "Insufficient amount of bits to validate");
 
-        let to_validate = to_validate.into_bytes();
+        let mut entropy = bits.into_bytes();
         let entropy_bytes = mtype.entropy_bits() / 8;
 
-        let actual_checksum = checksum(to_validate[entropy_bytes], mtype.checksum_bits());
+        let actual_checksum = checksum(entropy[entropy_bytes], mtype.checksum_bits());
 
         // Truncate to get rid of the byte containing the checksum
-        let entropy = truncate(to_validate, entropy_bytes);
+        entropy.truncate(entropy_bytes);
 
         let checksum_byte = sha256_first_byte(&entropy);
         let expected_checksum = checksum(checksum_byte, mtype.checksum_bits());
