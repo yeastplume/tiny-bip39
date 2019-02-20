@@ -1,13 +1,12 @@
 [package]
-
-name = "bip39"
-version = "0.6.0-beta.1"
+name = "tiny-bip39"
+version = "0.6.0"
 authors = [ "Stephen Oliver <steve@infincia.com>" ]
 license = "MIT/Apache-2.0"
 homepage = "https://github.com/infincia/bip39-rs/"
 repository = "https://github.com/infincia/bip39-rs/"
 readme = "README.md"
-description = "A Rust implementation of BIP-0039"
+description = "A fork of the bip39 crate with fixes to v0.6. Rust implementation of BIP-0039"
 documentation = "https://docs.rs/bip39"
 keywords = ["bip39", "bitcoin", "mnemonic"]
 
@@ -34,7 +33,7 @@ hashbrown = "0.1.7"
 sha2 = "0.8.0"
 hmac = "0.7.0"
 pbkdf2 = { version = "0.3.0", features=["parallel"], default-features = false }
-rand = "0.6.1"
+rand = "0.6.5"
 once_cell = { version = "0.1.6", features = [ "parking_lot" ] }
 
 [dev-dependencies]
