@@ -29,7 +29,7 @@ use std::fmt;
 /// [Seed::new()]: ./seed/struct.Seed.html#method.new
 /// [Seed::as_bytes()]: ./seed/struct.Seed.html#method.as_bytes
 ///
-#[derive(Clone, Serialize)]
+#[derive(Clone, Serialize, Deserialize)]
 pub struct Mnemonic {
     phrase: String,
     lang: Language,
