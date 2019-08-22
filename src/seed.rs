@@ -16,9 +16,10 @@ use std::fmt;
 /// [Seed]: ./seed/struct.Seed.html
 /// [Seed::as_bytes()]: ./seed/struct.Seed.html#method.as_bytes
 
-#[derive(Clone)]
+#[derive(Clone, Serialize, Deserialize)]
 pub struct Seed {
-    bytes: Vec<u8>,
+  #[serde(with = "serde_seed")]
+  bytes: Vec<u8>,
 }
 
 impl Seed {
@@ -80,6 +81,59 @@ impl fmt::UpperHex for Seed {
     }
 }
 
+/// Custom serializer for Seed
+mod serde_seed {
+	use crate::serde::{Deserialize, Deserializer, Serializer};
+	use crate::Seed;
+	use std::num;
+
+	///
+	pub fn serialize<S>(seed: &Vec<u8>, serializer: S) -> Result<S::Ok, S::Error>
+	where
+		S: Serializer,
+	{
+		serializer.serialize_str(&format!("{:x}", Seed{bytes: seed.clone()}))
+	}
+
+	///
+	pub fn deserialize<'de, D>(deserializer: D) -> Result<Vec<u8>, D::Error>
+	where
+		D: Deserializer<'de>,
+	{
+		use serde::de::Error;
+		String::deserialize(deserializer)
+			.and_then(|string| from_hex(string).map_err(|err| Error::custom(err.to_string())))
+			.and_then(|bytes: Vec<u8>| {
+				Ok(bytes)
+			})
+	}
+
+	/// Decode a hex string into bytes.
+	fn from_hex(hex_str: String) -> Result<Vec<u8>, num::ParseIntError> {
+		if hex_str.len() % 2 == 1 {
+			// TODO: other way to instantiate a ParseIntError?
+			let err = ("QQQ").parse::<u64>();
+			if let Err(e) = err {
+				return Err(e);
+			}
+		}
+		let hex_trim = if &hex_str[..2] == "0x" {
+			hex_str[2..].to_owned()
+		} else {
+			hex_str.clone()
+		};
+		split_n(&hex_trim.trim()[..], 2)
+			.iter()
+			.map(|b| u8::from_str_radix(b, 16))
+			.collect::<Result<Vec<u8>, _>>()
+	}
+
+	fn split_n(s: &str, n: usize) -> Vec<&str> {
+		(0..(s.len() - n + 1) / 2 + 1)
+			.map(|i| &s[2 * i..2 * i + n])
+			.collect()
+	}
+}
 #[cfg(test)]
 mod test {
     use super::*;
