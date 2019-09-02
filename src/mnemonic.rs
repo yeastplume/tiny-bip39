@@ -214,6 +214,16 @@ impl Mnemonic {
         &self.phrase
     }
 
+    /// Get the mnemonic type
+    pub fn mnemonic_type(&self) -> Result<MnemonicType, Error> {
+        let wordmap = self.language().wordmap();
+        let mut bits = BitWriter::with_capacity(264);
+        for word in self.phrase().split(" ") {
+            bits.push(wordmap.get_bits(&word)?);
+        }
+        MnemonicType::for_word_count(bits.len() / 11)
+    }
+
     /// Consume the `Mnemonic` and return the phrase as a `String`.
     ///
     /// This operation doesn't perform any allocations.
