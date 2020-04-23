@@ -1,23 +1,25 @@
+use unicode_normalization::Decompositions;
+
 pub(crate) trait IterExt: Iterator {
     fn join<R>(&mut self, glue: &str) -> R
     where
         R: From<String>,
-        Self::Item: AsRef<str>,
+        Self::Item: Joinable,
     {
         let first = match self.next() {
             Some(first) => first,
-            None        => return String::new().into()
+            None => return String::new().into(),
         };
 
         let (lower, _) = self.size_hint();
 
         let mut buffer = String::with_capacity(lower * (10 + glue.len()));
 
-        buffer.push_str(first.as_ref());
+        first.write_into(&mut buffer);
 
         for item in self {
             buffer.push_str(glue);
-            buffer.push_str(item.as_ref());
+            item.write_into(&mut buffer);
         }
 
         buffer.into()
@@ -30,6 +32,24 @@ pub(crate) trait IterExt: Iterator {
         Self: Sized,
     {
         BitIter::new(self)
+    }
+}
+
+pub(crate) trait Joinable {
+    fn write_into(self, buf: &mut String);
+}
+
+/// Allow iterator joining on str slices
+impl Joinable for &str {
+    fn write_into(self, buf: &mut String) {
+        buf.push_str(self);
+    }
+}
+
+/// Allow iterator joining on unicode_normalization iterators
+impl<I: Iterator<Item = char>> Joinable for Decompositions<I> {
+    fn write_into(self, buf: &mut String) {
+        buf.extend(self);
     }
 }
 
@@ -97,7 +117,7 @@ impl BitWriter {
         Self {
             offset: 0,
             remainder: 0,
-            inner: Vec::with_capacity(bytes)
+            inner: Vec::with_capacity(bytes),
         }
     }
 
@@ -179,7 +199,10 @@ where
     fn size_hint(&self) -> (usize, Option<usize>) {
         let (lower, upper) = self.source.size_hint();
 
-        ((lower * In::SIZE) / Out::SIZE, upper.map(|n| (n * In::SIZE) / Out::SIZE))
+        (
+            (lower * In::SIZE) / Out::SIZE,
+            upper.map(|n| (n * In::SIZE) / Out::SIZE),
+        )
     }
 }
 

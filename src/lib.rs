@@ -27,26 +27,23 @@
 //! println!("{:X}", seed);
 //! ```
 //!
-#[macro_use] extern crate failure;
-#[macro_use] extern crate once_cell;
-#[macro_use] extern crate serde_derive;
-extern crate pbkdf2;
-extern crate hashbrown;
-extern crate sha2;
-extern crate hmac;
-extern crate serde;
 
-mod mnemonic;
+#[macro_use]
+extern crate failure;
+#[macro_use]
+extern crate serde_derive;
+
 mod error;
-mod mnemonic_type;
 mod language;
-mod util;
+mod mnemonic;
+mod mnemonic_type;
 mod seed;
+mod util;
 
 mod crypto;
 
+pub use error::ErrorKind;
 pub use language::Language;
 pub use mnemonic::Mnemonic;
 pub use mnemonic_type::MnemonicType;
 pub use seed::Seed;
-pub use error::ErrorKind;
