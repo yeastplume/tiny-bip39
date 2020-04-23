@@ -1,10 +1,10 @@
-# tiny-bip39
+# tiny-bip39-yp
 
 [![Travis shield](https://travis-ci.org/maciejhirsz/tiny-bip39.svg)](https://travis-ci.org/maciejhirsz/tiny-bip39.svg)
 [![Crates.io version shield](https://img.shields.io/crates/v/tiny-bip39.svg)](https://crates.io/crates/tiny-bip39)
 [![Crates.io license shield](https://img.shields.io/crates/l/tiny-bip39.svg)](https://crates.io/crates/tiny-bip39)
 
-This is a fork of the [`bip39`](https://crates.io/crates/bip39) crate with fixes for v0.6.
+This is a fork of the [`tiny-bip39`](https://github.com/maciejhirsz/tiny-bip39) crate with fixes for v0.6 and derived serde traits added.
 
 ## Changes
 
